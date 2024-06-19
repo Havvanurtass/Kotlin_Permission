@@ -1,0 +1,138 @@
+    private lateinit var binding: FragmentTariflerBinding
+    private lateinit var permissionLauncher: ActivityResultLauncher<String> //izin istemek için
+    private lateinit var activityResultLauncher: ActivityResultLauncher<Intent>//Galeriye gitmek için
+    private var secilenGorsel:Uri?=null
+    private var secilenBitmap: Bitmap?=null
+
+
+  override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        registerLauncher()
+
+    }
+
+fun gorselSec(view: View) {
+
+        if (Build.VERSION.SDK_INT>=Build.VERSION_CODES.TIRAMISU){
+            //izinler
+            if (ContextCompat.checkSelfPermission(
+                    requireContext(),
+                    Manifest.permission.READ_MEDIA_IMAGES
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                //izin verilmemiş,izin istememiz gerekiyor
+                if (ActivityCompat.shouldShowRequestPermissionRationale(requireActivity(),Manifest.permission.READ_MEDIA_IMAGES)) {
+                    //Snackbar
+                    Snackbar.make(view,"Galeriye ulaşıp görsel seçmemiz lazım!",
+                        Snackbar.LENGTH_INDEFINITE).setAction("İzin Ver",
+                        View.OnClickListener {
+
+                            //İzin isteyeceğiz
+                            permissionLauncher.launch(Manifest.permission.READ_MEDIA_IMAGES)
+
+                        }
+                    ).show()
+                } else {
+                    permissionLauncher.launch(Manifest.permission.READ_MEDIA_IMAGES)
+
+                }
+
+            }else{
+                //izin verilmiş galeriye gidebilirim
+                val intetToGallery =
+                    Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+                activityResultLauncher.launch(intetToGallery)//Hem intenti yapıyor geri döüşünde
+            }
+
+
+        }else{
+            //izinler
+            if (ContextCompat.checkSelfPermission(
+                    requireContext(),
+                    Manifest.permission.READ_EXTERNAL_STORAGE
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                //izin verilmemiş,izin istememiz gerekiyor
+                if (ActivityCompat.shouldShowRequestPermissionRationale(
+                        requireActivity(),
+                        Manifest.permission.READ_EXTERNAL_STORAGE
+                    )
+                ) {
+                    //Snackbar
+                    Snackbar.make(
+                        view,
+                        "Galeriye ulaşıp görsel seçmemiz lazım",
+                        Snackbar.LENGTH_INDEFINITE
+                    ).setAction(
+                        "İzin Ver",
+                        View.OnClickListener {
+
+                            //İzin isteyeceğiz
+                            permissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+
+                        }
+                    ).show()
+                } else {
+                    //izin verilmiş galeriye gidebilirim
+                    val intetToGallery =
+                        Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+                    activityResultLauncher.launch(intetToGallery)//Hem intenti yapıyor geri döüşünde
+                }
+
+            }
+
+        }
+
+    }
+
+
+
+//GALERİYE GİTME FONKSİYONU
+    private fun registerLauncher(){
+
+        //Galeriye GİTME KODU
+        activityResultLauncher=registerForActivityResult(ActivityResultContracts.StartActivityForResult()){ result->
+            if (result.resultCode==AppCompatActivity.RESULT_OK){
+                val intentFromResult=result.data
+                if (intentFromResult !=null){
+                    secilenGorsel=intentFromResult.data //Görselin nerede kayıtlı olduğunu gösteriyor
+                    try { //Sıkıntı çıkmazsa
+                        if (Build.VERSION.SDK_INT >= 28) {
+                            val source = ImageDecoder.createSource(
+                                requireActivity().contentResolver,
+                                secilenGorsel!!
+                            )
+                            secilenBitmap = ImageDecoder.decodeBitmap(source)
+                            binding.imageView.setImageBitmap(secilenBitmap)
+                        } else {
+                            //ESKİ YÖNTEM
+                            secilenBitmap = MediaStore.Images.Media.getBitmap(
+                                requireActivity().contentResolver,
+                                secilenGorsel
+                            )
+                            binding.imageView.setImageBitmap(secilenBitmap)
+                        }
+                    }catch (e:IOException){ //Hata çıkarsa uygulama çökmeden hatayı yakalar
+                        println(e.localizedMessage)
+                    }
+                }
+
+            }
+
+        }
+        permissionLauncher=registerForActivityResult(ActivityResultContracts.RequestPermission()){ result->
+            if (result){
+                //izin verildi
+                //Galeriye gidebiliriz
+                val intetToGallery=Intent(Intent.ACTION_PICK,MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+                activityResultLauncher.launch(intetToGallery)//Hem intenti yapıyor geri döüşünde
+
+            }
+            else{
+                //izin verilmedi
+                Toast.makeText(requireContext(),"İzin Verilmedi!", Toast.LENGTH_LONG).show()
+            }
+        }
+
+    }
+
