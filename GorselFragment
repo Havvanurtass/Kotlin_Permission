@@ -136,3 +136,31 @@ fun gorselSec(view: View) {
 
     }
 
+
+//Kullanıcıdan alınan resmin boyutu için--bitmap'i küçültmek için
+
+
+    private fun kucukBitmapOlustur(secilenBitmap: Bitmap,maksimumBoyut:Int):Bitmap{
+        var width=secilenBitmap.width
+        var height=secilenBitmap.height
+        val bitmapOrani :Double= width.toDouble() / height.toDouble() //1 den büyükse yatay -- 1den küçükse dikey
+
+        if (bitmapOrani>1){
+            //görsel yatay
+            width=maksimumBoyut
+            val kisaltilmisYukseklik=width/bitmapOrani
+            height=kisaltilmisYukseklik.toInt()
+        }else{
+            //görsel Dikey
+            height=maksimumBoyut
+            val kisaltilmisGenislik=height*bitmapOrani
+            width=kisaltilmisGenislik.toInt()
+        }
+        return Bitmap.createScaledBitmap(secilenBitmap,width,height,true)
+    }
+
+
+
+
+
+
